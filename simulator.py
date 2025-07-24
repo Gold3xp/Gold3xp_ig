@@ -80,14 +80,14 @@ def main():
     for u in users:
         berhasil = False
         for pw in wordlist:
-            if pw.startswith(u):  # kombinasi logis
+            if pw.startswith(u):  # hanya kombinasi logis
                 if cek_login(u, pw):
                     simpan_hasil(cl, u, pw)
                     berhasil = True
                     break
                 time.sleep(0.2)
         if not berhasil:
-            pass  # tidak tampilkan hasil gagal, sesuai permintaan
+            pass  # tidak tampilkan yang gagal
 
 if __name__ == "__main__":
     main()
