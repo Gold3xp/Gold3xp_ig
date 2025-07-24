@@ -85,3 +85,6 @@ for u in users:
             time.sleep(0.2)
     if not berhasil:
         print(f"❌ GAGAL: {u}\n")
+
+if __name__ == "__main__":
+    main()
