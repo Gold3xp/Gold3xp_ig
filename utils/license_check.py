@@ -1,10 +1,13 @@
 import os
 
+LICENSE_FILE = "license.key"
+VALID_KEYS_FILE = "valid_keys.txt"
+
 def is_license_valid() -> bool:
     try:
-        with open("license.key", "r") as file:
+        with open(LICENSE_FILE, "r") as file:
             key = file.read().strip()
-        with open("valid_keys.txt", "r") as file:
+        with open(VALID_KEYS_FILE, "r") as file:
             valid_keys = [line.strip() for line in file]
         return key in valid_keys
     except FileNotFoundError:
@@ -12,7 +15,7 @@ def is_license_valid() -> bool:
         return False
 
 def get_or_create_license():
-    if not os.path.exists("license.key"):
+    if not os.path.exists(LICENSE_FILE):
         key = input("🔑 Masukkan lisensi: ").strip()
-        with open("license.key", "w") as file:
+        with open(LICENSE_FILE, "w") as file:
             file.write(key)
