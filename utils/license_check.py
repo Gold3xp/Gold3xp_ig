@@ -1,3 +1,5 @@
+import os
+
 def is_license_valid() -> bool:
     try:
         with open("license.key", "r") as file:
