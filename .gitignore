@@ -2,3 +2,6 @@
 *.env
 __pycache__/
 *.pyc
+license.key
+valid_licenses.txt
+hasil_sukses.txt
