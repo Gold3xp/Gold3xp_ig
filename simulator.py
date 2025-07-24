@@ -37,7 +37,7 @@ tampilkan_banner()
 
 # Cek dan input lisensi
 get_or_create_license()
-if not is_license_valid():
+if not is_license_valid():  # ✅ TANPA ARGUMEN
     print("❌ Lisensi tidak valid. Hubungi admin.")
     exit()
 
