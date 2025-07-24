@@ -1,5 +1,9 @@
 from instagrapi import Client
-import time
+import time, os
+from colorama import Fore, init
+
+# Inisialisasi colorama
+init(autoreset=True)
 
 # ===== Simulasi akun lokal valid
 akun_valid = {
@@ -17,28 +21,46 @@ def generate(u):
         u + "2025", u.capitalize(), u.upper()
     ]
 
+def clear_terminal():
+    os.system("clear")
+
+def tampilkan_banner():
+    banner = f"""{Fore.CYAN}
+  ____ ___  _   _ ____  _   _ ___ ____  ____  
+ / ___/ _ \| \ | |  _ \| | | |_ _|  _ \|  _ \ 
+| |  | | | |  \| | | | | | | || || |_) | | | |
+| |__| |_| | |\  | |_| | |_| || ||  __/| |_| |
+ \____\___/|_| \_|____/ \___/|___|_|   |____/ 
+     IG Bruteforce Simulator - by Gold3xp
+    """
+    print(banner)
+
+# ==== Main Program ====
+clear_terminal()
+tampilkan_banner()
+
 cl = Client()
-ui = input("IG Username: ")
-pi = input("IG Password: ")
+ui = input(Fore.YELLOW + "IG Username: ")
+pi = input(Fore.YELLOW + "IG Password: ")
 cl.login(ui, pi)
 
 foll = cl.user_followers(cl.user_id_from_username(ui), amount=10)
 users = [info.username for info in foll.values()]
-print(f"\n✅ Dapat {len(users)} followers\n")
+print(Fore.GREEN + f"\n✅ Dapat {len(users)} followers\n")
 
 wlist = list({pw for u in users for pw in generate(u)})
-print(f"🔧 Wordlist dibuat: {len(wlist)} password kemungkinan\n")
+print(Fore.CYAN + f"🔧 Wordlist dibuat: {len(wlist)} password kemungkinan\n")
 
 for u in users:
-    print(f"🔍 Simulasi login: {u}")
+    print(Fore.YELLOW + f"🔍 Simulasi login: {u}")
     ok = False
     for pw in wlist:
         if pw.startswith(u):
-            print(f"  🔑 Coba: {pw}")
+            print(Fore.BLUE + f"  🔑 Coba: {pw}")
             if cek_login(u, pw):
-                print(f"✅ BERHASIL: {u} | {pw}\n")
+                print(Fore.GREEN + f"✅ BERHASIL: {u} | {pw}\n")
                 ok = True
                 break
             time.sleep(0.2)
     if not ok:
-        print(f"❌ GAGAL: {u}\n")
+        print(Fore.RED + f"❌ GAGAL: {u}\n")
