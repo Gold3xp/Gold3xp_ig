@@ -1,2 +1,2 @@
-instagrapi
+instagrapi==1.15.4
 colorama
