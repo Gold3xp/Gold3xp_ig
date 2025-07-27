@@ -1,8 +1,14 @@
-def scrape_followers(cl, target_username):
+def scrape_followers(client, username_target):
     try:
-        user_id = cl.user_id_from_username(target_username)
-        followers = cl.user_followers(user_id, amount=0)
-        return [{ "username": v.username, "full_name": v.full_name } for v in followers.values()]
+        user_id = client.user_id_from_username(username_target)
+        followers = client.user_followers(user_id)  # tanpa 'amount', artinya ambil semua
+        result = []
+        for user in followers.values():
+            result.append({
+                "username": user.username,
+                "full_name": user.full_name,
+            })
+        return result
     except Exception as e:
-        print(f"[!] Gagal mengambil followers: {e}")
+        print(f"⚠️ Gagal scrape followers: {e}")
         return []

