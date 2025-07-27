@@ -9,14 +9,17 @@ from utils.tools import login_real, load_list_from_file, get_user_info, login_wi
 init(autoreset=True)
 
 def brute_force_real_mode():
+    # Input interaktif username target
     target_username = input(Fore.YELLOW + "Masukkan username target Instagram: ").strip()
     print(Fore.YELLOW + f"\n🔍 Scraping followers dari: {target_username} ...")
 
+    # Login dulu (gunakan cookie.txt)
     client = login_with_cookie("cookie.txt", "user.txt")
     if not client:
         print(Fore.RED + "❌ Gagal login menggunakan cookie.")
         return
 
+    # Scrape followers (mengirim client login)
     followers = scrape_followers(client, target_username)
     if not followers:
         print(Fore.RED + "❌ Gagal scrape followers atau tidak ada followers.")

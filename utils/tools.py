@@ -1,10 +1,10 @@
-from instagrapi import Client
 import os
 import re
+import requests
+from instagrapi import Client
+from colorama import Fore
 
 def login_with_cookie(cookie_path, user_path):
-    from colorama import Fore
-
     if not os.path.exists(cookie_path):
         print(Fore.RED + f"❌ File {cookie_path} tidak ditemukan.")
         return None
@@ -28,3 +28,36 @@ def login_with_cookie(cookie_path, user_path):
     except Exception as e:
         print(Fore.RED + f"❌ Gagal login dari cookie: {e}")
         return None
+
+
+def login_real(username, password, user_agent=None, proxy=None):
+    cl = Client()
+    try:
+        if user_agent:
+            cl.user_agent = user_agent
+        if proxy:
+            cl.set_proxy(proxy)
+        cl.login(username, password)
+        return True
+    except Exception:
+        return False
+
+
+def get_user_info(username):
+    try:
+        cl = Client()
+        user = cl.user_info_by_username(username)
+        return {
+            "followers": user.follower_count,
+            "following": user.following_count,
+            "posts": user.media_count
+        }
+    except Exception:
+        return {"followers": 0, "following": 0, "posts": 0}
+
+
+def load_list_from_file(path):
+    if not os.path.exists(path):
+        return []
+    with open(path, "r") as f:
+        return [line.strip() for line in f if line.strip()]
