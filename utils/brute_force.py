@@ -1,30 +1,40 @@
-import bcrypt
 from colorama import Fore
+import time
+import random
 
-def generate_passwords(username):
-    # Pola umum: nama123, nama2024, nama12345, dst.
-    return [
-        username + "123",
-        username + "12345",
-        username + "2024",
-        username + "2025",
-        username + "@",
-        username + "!"
-    ]
+def brute_force_attack(user_list, hash_db):
+    for user in user_list:
+        username = user['username']
+        print(Fore.CYAN + f"⏳ Mencoba login untuk: {username}")
 
-def brute_force_attack(followers, hash_db):
-    for user in followers:
-        print(Fore.BLUE + f"[*] Mencoba password untuk {user}...")
-        if user not in hash_db:
-            print(Fore.MAGENTA + f"[!] {user} tidak ada di hash_db.json\n")
-            continue
+        # Daftar password brute force berdasarkan pola umum
+        password_list = [
+            username + "123",
+            username + "1234",
+            username + "12345",
+            username + "123456",
+            username + "2024",
+            username + "2025",
+            username + "!",
+            username + "!",
+            username + "@123",
+            username + "#123",
+            username + "_123",
+            username.lower(),
+            username.upper()
+        ]
 
-        hashed_pw = hash_db[user]
-        passwords = generate_passwords(user)
+        # Tambahan kombinasi angka sederhana
+        password_list += [username + str(i) for i in range(10)]  # user0 - user9
+        password_list += [username + str(i).zfill(2) for i in range(100)]  # user00 - user99
 
-        for pw in passwords:
-            if bcrypt.checkpw(pw.encode(), hashed_pw.encode()):
-                print(Fore.GREEN + f"[✅] Password ditemukan untuk {user}: {pw}\n")
+        for password in password_list:
+            hashed = hash(password)
+            if str(hashed) in hash_db:
+                print(Fore.GREEN + f"✅ Berhasil: {username} | {password}")
                 break
-        else:
-            print(Fore.RED + f"[❌] Password tidak ditemukan untuk {user}\n")
+            else:
+                print(Fore.RED + f"❌ Gagal: {username} | {password}")
+            time.sleep(random.uniform(0.5, 1.5))
+
+        print(Fore.YELLOW + "-" * 40)
