@@ -1,26 +1,48 @@
 import argparse
 import json
 import random
+import os
+import time
 from colorama import Fore, init
 from utils.scraper import scrape_followers
 from utils.password_gen import generate_passwords
-from utils.tools import login_real, load_list_from_file, get_user_info, login_with_cookie
+from utils.tools import login_real, load_list_from_file, get_user_info
 
 init(autoreset=True)
 
+def clear_terminal():
+    os.system("cls" if os.name == "nt" else "clear")
+
 def brute_force_real_mode():
-    # Input interaktif username target
+    clear_terminal()
+
+    # Login interaktif
+    print(Fore.CYAN + "🔐 Login terlebih dahulu")
+    username_login = input(Fore.YELLOW + "Username IG login: ").strip()
+    password_login = input(Fore.YELLOW + "Password IG login: ").strip()
+
+    # Coba login akun utama (untuk scraping)
+    print(Fore.CYAN + "🔄 Mencoba login...")
+    success = login_real(username_login, password_login)
+    if not success:
+        print(Fore.RED + "❌ Login gagal. Username/password salah atau terblokir.")
+        return
+
+    print(Fore.GREEN + "✅ Login berhasil.\n")
+
+    input(Fore.YELLOW + "Tekan Enter untuk lanjut... ")
+    clear_terminal()
+
+    # Input target
     target_username = input(Fore.YELLOW + "Masukkan username target Instagram: ").strip()
     print(Fore.YELLOW + f"\n🔍 Scraping followers dari: {target_username} ...")
 
-    # Login dulu (gunakan cookie.txt)
-    client = login_with_cookie("cookie.txt", "user.txt")
-    if not client:
-        print(Fore.RED + "❌ Gagal login menggunakan cookie.")
-        return
+    # Gunakan sesi login ulang untuk scraping followers target
+    from instagrapi import Client
+    cl = Client()
+    cl.login(username_login, password_login)
 
-    # Scrape followers (mengirim client login)
-    followers = scrape_followers(client, target_username)
+    followers = scrape_followers(cl, target_username)
     if not followers:
         print(Fore.RED + "❌ Gagal scrape followers atau tidak ada followers.")
         return
@@ -64,4 +86,5 @@ if __name__ == "__main__":
     if args.mode == "real":
         brute_force_real_mode()
     else:
+        clear_terminal()
         print(Fore.YELLOW + "🔧 Mode simulasi belum diimplementasikan.")
